@@ -14,6 +14,7 @@ typedef struct{
      uint16_t              I; // STORE MEMORY ADDRESS
      uint16_t             PC;
      uint16_t             SP;
+     uint8_t              DT; // DELAY TIMER
      uint8_t       KEY_PRESS;
      // SOUND NOT INCLUDED
 } CHIP_8;
@@ -140,6 +141,7 @@ int main(){
      uint16_t file_size;
      char           chr;
      uint8_t        rnd;
+     char     input[64];
 
      C8->PC = 512;
      C8->SP =   0;
@@ -149,88 +151,92 @@ int main(){
      memset(C8->DISPLAY, 0, 64*32);
      memset(FONT,        0,    80);
 
-     char input[12];
-
      puts("FILE NAME:");
      gets(input);
      file = fopen(input, "rb");
      fseek(file, 0, SEEK_END);
      file_size = ftell(file);
-     fclose(file);
-     file = fopen(input, "rb");
+     rewind(file);
 
      fread(C8->MEMORY + 512, 1, file_size, file);
 
      switch(OP){
-          case 0x0000:
-               if(C8->STACK[C8->SP] != 0)++(C8->SP);
-               C8->STACK[C8->SP] = C8->PC;
-               C8->PC = NNN;
-               break;
-          case 0x00E0:
-               for(uint8_t xAxis = 0; xAxis < 64; xAxis++){
-                    for(uint8_t yAxis = 0; yAxis < 32; yAxis++)puts(" ");
-                    puts("\n");
-               }
-               C8->PC += 2;
-          break;
-          case 0x00EE:
-               C8->PC = C8->STACK[C8->SP];
-               C8->STACK[C8->SP] = 0;
-               if(C8->STACK[C8->SP] > 0)--(C8->SP);
-               break;
+          case 0x0000: if(C8->STACK[C8->SP] != 0)++(C8->SP);
+                       C8->STACK[C8->SP] = C8->PC;
+                       C8->PC = NNN;
+                       break;
+          case 0x00E0: for(uint8_t xAxis = 0; xAxis < 64; xAxis++){
+                            for(uint8_t yAxis = 0; yAxis < 32; yAxis++)puts(" ");
+                            puts("\n");
+                       }
+                       C8->PC += 2;
+                       break;
+          case 0x00EE: C8->PC = C8->STACK[C8->SP];
+                       C8->STACK[C8->SP] = 0;
+                       if(C8->STACK[C8->SP] > 0)--(C8->SP);
+                       break;
           case 0x1000: C8->PC = NNN; break;
-          case 0x2000:
-               if(C8->STACK[C8->SP] != 0)++(C8->SP);
-               C8->STACK[C8->SP] = C8->PC;
-               C8->PC = NNN;
-               break;
-          case 0x3000: if(C8->V[X] == NN)break;
-          case 0x4000: if(C8->V[X] != NN)break;
-          case 0x5000: if(C8->V[X] == C8->V[Y])break;
+          case 0x2000: if(C8->STACK[C8->SP] != 0)++(C8->SP);
+                       C8->STACK[C8->SP] = C8->PC;
+                       C8->PC = NNN;
+                       break;
+          case 0x3000: if(C8->V[X] == NN)C8->PC += 2;
+                       break;
+          case 0x4000: if(C8->V[X] != NN)C8->PC += 2;
+                       break;
+          case 0x5000: if(C8->V[X] == C8->V[Y])C8->PC += 2;
+                       break;
           case 0x6000: C8->V[X] = NN; break;
           case 0x7000: C8->V[X] += NN; break;
           case 0x8000: C8->V[Y] = C8->V[X]; break;
-          case 0x8001: break;
-          case 0x8002: break;
-          case 0x8003: break;
-          case 0x8004: break;
-          case 0x8005: break;
-          case 0x8006: break;
-          case 0x8007: break;
-          case 0x800E: break;
-          case 0x9000: if(C8->V[X] == C8->V[Y])break;
+          case 0x8001: C8->V[X] = C8->V[X] | C8->V[Y]; break;
+          case 0x8002: C8->V[X] = C8->V[X] & C8->V[Y]; break;
+          case 0x8003: C8->V[X] = C8->V[X] ^ C8->V[Y]; break;
+          case 0x8004: C8->V[X] += C8->V[Y]; break; // CHECK FOR CARRY
+          case 0x8005: C8->V[X] -= C8->V[Y]; break; // CHECK FOR BORROW
+          case 0x8006: C8->V[X] = C8->V[Y] >> 1; break; // SET REGISTER V[F] TO THE LEAST SIGNIFICANT BIT PRIOR TO THE SHIFT V[Y] IS UNCHANGED
+          case 0x8007: C8->V[X] = C8->V[Y] - C8->V[X]; break; // V[F] == 0 IF BORROW OCCURS, V[F] != IF BORROW DOESN'T OCCUR
+          case 0x800E: C8->V[X] = C8->V[Y] << 1; break; // SET REGISTER V[F] TO THE LEAST SIGNIFICANT BIT PRIOR TO THE SHIFT V[Y] IS UNCHANGED
+          case 0x9000: if(C8->V[X] == C8->V[Y])C8->PC += 2;
+                       break;
           case 0xA000: C8->I = NNN; break;
           case 0xB000: C8->PC = NNN + C8->V[0]; break;
-          case 0xC000:
-               rnd = rand() % 0xFF;
-               C8->V[X] = (rnd >> 8) & 0xF;
-               break;
-          case 0xD000: break;
-          case 0xE09E: if(chr == C8->V[X])break;
-          case 0xE0A1: if(chr != C8->V[X])break;
-          case 0xF007: break; // NO DELAY
-          case 0xF00A:
-               chr = getchar();
-               C8->V[X] = chr;
-               break;
-          case 0xF015: break; // NO DELAY
+          case 0xC000: rnd = rand() % 0xFF;
+                       C8->V[X] = (rnd >> 8) & 0xF;
+                       break;
+          case 0xD000: C8->DISPLAY[C8->V[X]][C8->V[Y]];
+                       for(C8->I; C8->I <= N; C8->I++){
+                            puts("#");
+                       }
+                       break; // SET V[F] TO 01 IF ANY SET PIXELS ARE CHANGED OR UNSET AND 00 OTHERWISE
+          case 0xE09E: if(chr == C8->V[X])C8->PC += 2;
+                       break;
+          case 0xE0A1: if(chr != C8->V[X])C8->PC += 2;
+                       break;
+          case 0xF007: C8->V[X] = C8->DT; break;
+          case 0xF00A: chr = getchar();
+                       C8->V[X] = chr;
+                       break;
+          case 0xF015: C8->DT = C8->V[X]; break;
           case 0xF018: break; // NO SOUND
           case 0xF01E: C8->I += C8->V[X]; break;
-          case 0xF029: break;
-          case 0xF033: break;
-          case 0xF055:
-               for(uint8_t i = 0; i == 16; i++){
-                    C8->V[i] = C8->I;
-                    C8->I += X + 1;
-               }
-               break;
-          case 0xF065:
-               for(uint8_t i = 0; i == 16; i++){
-                    C8->V[i] += C8->I;
-                    C8->I += X + 1;
-               }
-               break;
-          default: puts("INVALID"); break;
+          case 0xF029: C8->I = C8->V[X]; break;
+          case 0xF033: C8->I = C8->V[X];
+                       C8->I++;
+                       C8->I = C8->V[X];
+                       C8->I++;
+                       C8->I = C8->V[X];
+                       break; // TRUN V[X] INTO BINARY CODED DECIMAL
+          case 0xF055: for(uint8_t i = 0; i == 16; i++){
+                            C8->V[i] = C8->I;
+                            C8->I += X + 1;
+                       }
+                       break;
+          case 0xF065: for(uint8_t i = 0; i == 16; i++){
+                            C8->V[i] += C8->I;
+                            C8->I += X + 1;
+                       }
+                       break;
+          default:     puts("INVALID"); break;
      }
 }
