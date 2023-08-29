@@ -3,10 +3,9 @@
 void INIT(CHIP_8 *C8){
      C8 = malloc(sizeof(CHIP_8));
 
-     C8->PC = 512;
-     C8->I  =   0;
-     C8->SP =   0;
-
+     C8->PC =          512;
+     C8->I  =            0;
+     C8->SP = C8->STACK[0];
      memset(C8->MEMORY,  0,  4096);
      memset(C8->STACK,   0,    16);
      memset(C8->DISPLAY, 0, 64*32);
@@ -29,7 +28,7 @@ void INIT(CHIP_8 *C8){
      file_size = ftell(file);
      rewind(file);
 
-     fread(C8->MEMORY + 512, 1, file_size, file);
+     fread(&C8->MEMORY[C8->PC], file_size, 1, file);
 }
 
 void CYCLE(CHIP_8  *C8){
@@ -97,7 +96,7 @@ void CYCLE(CHIP_8  *C8){
                          else C8->V[0xF] = 1;
                          C8->V[X] = C8->V[Y] << 1;
                          break;
-               default: puts("INVALID"); break;
+               default:  puts("INVALID"); break;
           }
           case 0x9000: if(C8->V[X] != C8->V[Y])C8->PC += 2;
                        break;
@@ -105,16 +104,20 @@ void CYCLE(CHIP_8  *C8){
           case 0xB000: C8->PC = NNN + C8->V[0]; break;
           case 0xC000: C8->V[X] = (rand() % 255) & NN;
                        break;
-          case 0xD000: C8->V[0xF] = 0;
+          case 0xD000: {
+                       int xAxis = C8->V[X];
+                       int yAxis = C8->V[Y];
+                       C8->V[0xF] = 0;
                        for(uint8_t i = 0; i < N; i++){
                             for(uint8_t j = 0; j < 8; j++){
-                                 if(C8->V[X] + j == 64)C8->V[X] = -j;
-                                 if(C8->V[Y] + i == 64)C8->V[Y] = -i;
-                                 if(C8->DISPLAY[C8->V[X] + j][C8->V[Y] + i] == 1 && ((C8->MEMORY[C8->I + i] & ands[j]) >> (8 - j - 1)) == 1)C8->V[0xF] = 1;
-                                 C8->DISPLAY[C8->V[X] + j][C8->V[Y] + i] = C8->DISPLAY[C8->V[X] + j][C8->V[Y] + i] ^ ((C8->MEMORY[C8->I + 1] & ands[j]) >> (8 - j - 1));
-                            }
+                                 if(C8->DISPLAY[xAxis + j][yAxis + i] == 1 && ((C8->MEMORY[C8->I + i] & ands[j]) >> (8 - j - 1)) == 1)C8->V[0xF] = 1;
+                                 C8->DISPLAY[xAxis + j][yAxis + i] = C8->DISPLAY[xAxis + j][yAxis + i] ^ ((C8->MEMORY[C8->I + 1] & ands[j]) >> (8 - j - 1));
+                           }
+                           xAxis = C8->V[X];
+                           yAxis = C8->V[Y];
                        }
-                       break; // SET V[F] TO 01 IF ANY SET PIXELS ARE CHANGED OR UNSET AND 00 OTHERWISE
+                       break;
+                       }
           case 0xE09E: if(C8->KEY_PRESS == C8->V[X])C8->PC += 2;
                        break;
           case 0xE0A1: if(C8->KEY_PRESS != C8->V[X])C8->PC += 2;
@@ -139,7 +142,7 @@ void CYCLE(CHIP_8  *C8){
                                break;
                     default:   puts("INVALID"); break;
                   }
-          default:     puts("INVALID"); break;
+          default: puts("INVALID"); break;
      }
 }
 void KEYBOARD(CHIP_8 *C8, uint8_t KEY){
@@ -167,16 +170,11 @@ void KEY_RELEASE(CHIP_8 *C8){
      C8->KEY_PRESS = 0xFF;
 }
 int main(CHIP_8 *C8){
+     INIT(C8);
      while(1){
-          INIT(C8);
-          for(uint8_t i = 0; i < 64; i++){
-               for(uint8_t j = 0; j < 32; j++){
-                    putchar('#');
-               }
-               putchar('\n');
-          }
+          CYCLE(C8);
+          for(uint8_t i = 0; i < 64; i++)for(uint8_t j = 0; j < 32; j++)if(C8->DISPLAY[i][j] == 1)putchar('#');
           KEYBOARD(C8, C8->KEY_PRESS);
           KEY_RELEASE(C8);
-          CYCLE(C8);
      }
 }
