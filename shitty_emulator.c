@@ -20,101 +20,22 @@ typedef struct{
 } CHIP_8;
 
 uint8_t FONT[80] = {
-    0b00111100,
-    0b00100100,
-    0b00100100,
-    0b00100100,
-    0b00111100,
-
-    0b00001000,
-    0b00011000,
-    0b00001000,
-    0b00001000,
-    0b00011100,
-
-    0b00011000,
-    0b00100100,
-    0b00001000,
-    0b00010000,
-    0b00111100,
-
-    0b00011000,
-    0b00100100,
-    0b00001000,
-    0b00100100,
-    0b00011000,
-
-    0b00001000,
-    0b00011000,
-    0b00111100,
-    0b00001000,
-    0b00001000,
-
-    0b00111100,
-    0b00101000,
-    0b00110100,
-    0b00000100,
-    0b00111000,
-
-    0b00001000,
-    0b00010000,
-    0b00111000,
-    0b01000100,
-    0b00111000,
-
-    0b00111100,
-    0b00000100,
-    0b00011000,
-    0b00001000,
-    0b00001000,
-
-    0b00011000,
-    0b00100100,
-    0b00011000,
-    0b00100100,
-    0b00011000,
-
-    0b00111000,
-    0b01000100,
-    0b00111000,
-    0b00010000,
-    0b00100000,
-
-    0b00011000,
-    0b00100100,
-    0b00111100,
-    0b00100100,
-    0b00100100,
-
-    0b00111000,
-    0b00100100,
-    0b00111000,
-    0b00100100,
-    0b00111000,
-
-    0b00011000,
-    0b00100100,
-    0b00100000,
-    0b00100100,
-    0b00011000,
-
-    0b00111000,
-    0b00100100,
-    0b00100100,
-    0b00100100,
-    0b00111000,
-
-    0b00111100,
-    0b00100000,
-    0b00111100,
-    0b00100000,
-    0b00111100,
-
-    0b00111100,
-    0b00100000,
-    0b00111000,
-    0b00100000,
-    0b00100000
+     0x60, 0xA0, 0xA0, 0xA0, 0xC0, // 0
+     0x40, 0xC0, 0x40, 0x40, 0xE0, // 1
+     0xC0, 0x20, 0x40, 0x80, 0xE0, // 2
+     0xC0, 0x20, 0x40, 0x20, 0xC0, // 3
+     0x20, 0xA0, 0xE0, 0x20, 0x20, // 4
+     0xE0, 0x80, 0xC0, 0x20, 0xC0, // 5
+     0x40, 0x80, 0xC0, 0xA0, 0x40, // 6
+     0xE0, 0x20, 0x60, 0x40, 0x40, // 7
+     0x40, 0xA0, 0x40, 0xA0, 0x40, // 8
+     0x40, 0xA0, 0x60, 0x20, 0x40, // 9
+     0x40, 0xA0, 0xE0, 0xA0, 0xA0, // A
+     0xC0, 0xA0, 0xC0, 0xA0, 0xC0, // B
+     0x60, 0x80, 0x80, 0x80, 0x60, // C
+     0xC0, 0xA0, 0xA0, 0xA0, 0xC0, // D
+     0xE0, 0x80, 0xC0, 0x80, 0xE0, // E
+     0xE0, 0x80, 0xC0, 0x80, 0x80  // F
 };
 
 int main(){
@@ -122,34 +43,36 @@ int main(){
 
      C8 = malloc(sizeof(CHIP_8));
 
+     C8->PC = 512;
+     C8->I  =   0;
+     C8->SP =   0;
+
      memset(C8->MEMORY,  0,  4096);
+     memset(C8->STACK,   0,    16);
      memset(C8->DISPLAY, 0, 64*32);
+     memset(C8->V,       0,    16);
      memset(FONT,        0,    80);
 
-     for(uint8_t C = 0; C < 80; C++)C8->MEMORY[C] = FONT[C];
+     for(uint8_t i = 0; i < 80; i++)C8->MEMORY[i] = FONT[i];
 
-     uint16_t OP  = C8->MEMORY[C8->PC];
-     uint8_t  P   = (OP >> 12) &   0xF;
-     uint8_t  X   = (OP >> 8)  &   0xF;
-     uint8_t  Y   = (OP >> 4)  &   0xF;
-     uint8_t  N   =  OP        &   0xF;
-     uint8_t  NN  =  OP        &  0xFF;
-     uint8_t  KK  = (OP >> 8)  &  0xFF;
-     uint16_t NNN =  OP        & 0xFFF;
+     C8->DT        = 0;
+     C8->KEY_PRESS = 0;
+
+     uint16_t OP  = C8->MEMORY[C8->PC] | C8->MEMORY[C8->PC + 1];
+     uint8_t  HI  = C8->MEMORY[C8->PC++];
+     uint8_t  LO  = C8->MEMORY[C8->PC++];
+     uint8_t  P   = HI >>    0x4;
+     uint8_t  X   = HI &     0xF;
+     uint8_t  Y   = LO >>    0x4;
+     uint8_t  N   = LO &     0xF;
+     uint8_t  NN  = OP &    0xFF;
+     uint16_t NNN = OP &   0xFFF;
 
      FILE         *file;
      uint16_t file_size;
-     char           chr;
      uint8_t        rnd;
      char     input[64];
-
-     C8->PC = 512;
-     C8->SP =   0;
-     C8->I  =   0;
-
-     memset(C8->MEMORY,  0,  4096);
-     memset(C8->DISPLAY, 0, 64*32);
-     memset(FONT,        0,    80);
+     uint8_t    ands[8] = {128, 64, 32, 16, 8, 4, 2, 1};
 
      puts("FILE NAME:");
      gets(input);
@@ -169,7 +92,6 @@ int main(){
                             for(uint8_t yAxis = 0; yAxis < 32; yAxis++)puts(" ");
                             puts("\n");
                        }
-                       C8->PC += 2;
                        break;
           case 0x00EE: C8->PC = C8->STACK[C8->SP];
                        C8->STACK[C8->SP] = 0;
@@ -192,50 +114,61 @@ int main(){
           case 0x8001: C8->V[X] = C8->V[X] | C8->V[Y]; break;
           case 0x8002: C8->V[X] = C8->V[X] & C8->V[Y]; break;
           case 0x8003: C8->V[X] = C8->V[X] ^ C8->V[Y]; break;
-          case 0x8004: C8->V[X] += C8->V[Y]; break; // CHECK FOR CARRY
-          case 0x8005: C8->V[X] -= C8->V[Y]; break; // CHECK FOR BORROW
-          case 0x8006: C8->V[X] = C8->V[Y] >> 1; break; // SET REGISTER V[F] TO THE LEAST SIGNIFICANT BIT PRIOR TO THE SHIFT V[Y] IS UNCHANGED
-          case 0x8007: C8->V[X] = C8->V[Y] - C8->V[X]; break; // V[F] == 0 IF BORROW OCCURS, V[F] != IF BORROW DOESN'T OCCUR
-          case 0x800E: C8->V[X] = C8->V[Y] << 1; break; // SET REGISTER V[F] TO THE LEAST SIGNIFICANT BIT PRIOR TO THE SHIFT V[Y] IS UNCHANGED
-          case 0x9000: if(C8->V[X] == C8->V[Y])C8->PC += 2;
+          case 0x8004: if(C8->V[X] + C8->V[Y] > 255)C8->V[0xF] = 1;
+                       else C8->V[0xF] = 0;
+                       C8->V[X] += C8->V[Y];
+                       break;
+          case 0x8005: if(C8->V[X] < C8->V[Y])C8->V[0xF] = 0;
+                       else C8->V[0xF] = 1;
+                       C8->V[X] -= C8->V[Y];
+                       break;
+          case 0x8006: if(C8->V[X] % 2 == 0)C8->V[0xF] = 0;
+                       else C8->V[0xF] = 1;
+                       C8->V[X] = C8->V[Y] >> 1;
+                       break;
+          case 0x8007: if(C8->V[Y] < C8->V[X])C8->V[0xF] = 0;
+                       else C8->V[0xF] = 1;
+                       C8->V[X] = C8->V[Y] - C8->V[X];
+                       break;
+          case 0x800E: if(C8->V[X] < 128)C8->V[0xF] = 0;
+                       else C8->V[0xF] = 1;
+                       C8->V[X] = C8->V[Y] << 1;
+                       break;
+          case 0x9000: if(C8->V[X] != C8->V[Y])C8->PC += 2;
                        break;
           case 0xA000: C8->I = NNN; break;
           case 0xB000: C8->PC = NNN + C8->V[0]; break;
-          case 0xC000: rnd = rand() % 0xFF;
-                       C8->V[X] = (rnd >> 8) & 0xF;
+          case 0xC000: C8->V[X] = (rand() % 255) & NN;
                        break;
-          case 0xD000: C8->DISPLAY[C8->V[X]][C8->V[Y]];
-                       for(C8->I; C8->I <= N; C8->I++){
-                            puts("#");
+          case 0xD000: C8->V[0xF] = 0;
+                       for(uint8_t i = 0; i < N; i++){
+                            for(uint8_t j = 0; j < 8; j++){
+                                 if(C8->V[X] + j == 64)C8->V[X] = -j;
+                                 if(C8->V[Y] + i == 64)C8->V[Y] = -i;
+                                 if(C8->DISPLAY[C8->V[X] + j][C8->V[Y] + i] == 1 && ((C8->MEMORY[C8->I + i] & ands[j]) >> (8 - j - 1)) == 1)C8->V[0xF] = 1;
+                                 C8->DISPLAY[C8->V[X] + j][C8->V[Y] + i] = C8->DISPLAY[C8->V[X] + j][C8->V[Y] + i] ^ ((C8->MEMORY[C8->I + 1] & ands[j]) >> (8 - j - 1));
+                            }
                        }
                        break; // SET V[F] TO 01 IF ANY SET PIXELS ARE CHANGED OR UNSET AND 00 OTHERWISE
-          case 0xE09E: if(chr == C8->V[X])C8->PC += 2;
+          case 0xE09E: if(C8->KEY_PRESS == C8->V[X])C8->PC += 2;
                        break;
-          case 0xE0A1: if(chr != C8->V[X])C8->PC += 2;
+          case 0xE0A1: if(C8->KEY_PRESS != C8->V[X])C8->PC += 2;
                        break;
           case 0xF007: C8->V[X] = C8->DT; break;
-          case 0xF00A: chr = getchar();
-                       C8->V[X] = chr;
-                       break;
+          case 0xF00A: C8->V[X] = C8->KEY_PRESS; break;
           case 0xF015: C8->DT = C8->V[X]; break;
           case 0xF018: break; // NO SOUND
           case 0xF01E: C8->I += C8->V[X]; break;
-          case 0xF029: C8->I = C8->V[X]; break;
-          case 0xF033: C8->I = C8->V[X];
-                       C8->I++;
-                       C8->I = C8->V[X];
-                       C8->I++;
-                       C8->I = C8->V[X];
-                       break; // TRUN V[X] INTO BINARY CODED DECIMAL
-          case 0xF055: for(uint8_t i = 0; i == 16; i++){
-                            C8->V[i] = C8->I;
-                            C8->I += X + 1;
-                       }
+          case 0xF029: C8->I = C8->V[X] * 5; break;
+          case 0xF033: C8->MEMORY[C8->I] = C8->V[X] / 100;
+                       C8->MEMORY[C8->I + 1] = (C8->V[X] / 10) % 10;
+                       C8->MEMORY[C8->I + 2] = C8->V[X] % 10;
                        break;
-          case 0xF065: for(uint8_t i = 0; i == 16; i++){
-                            C8->V[i] += C8->I;
-                            C8->I += X + 1;
-                       }
+          case 0xF055: for(uint8_t i = 0; i < X + 1; i++)C8->MEMORY[C8->I + i] = C8->V[i];
+                       C8->I = C8->I + X + 1;
+                       break;
+          case 0xF065: for(uint8_t i = 0; i < X + 1; i++)C8->V[i] += C8->MEMORY[C8->I + i];
+                       C8->I = C8->I + X + 1;
                        break;
           default:     puts("INVALID"); break;
      }
