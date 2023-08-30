@@ -1,7 +1,11 @@
+#define _WIN32_WINNT 0x0500
 #include  <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include  <conio.h>
+#include   <time.h>
+#include<windows.h>
 
 typedef struct{
      //uint8_t RESERVED_MEMORY[512];
@@ -40,5 +44,7 @@ uint8_t FONT[80] = {
 
 void INIT(CHIP_8 *C8);
 void CYCLE(CHIP_8 *C8);
-void KEYBOARD(CHIP_8 *C8, uint8_t KEY);
-void KEY_RELEASE(CHIP_8 *C8);
+void RENDER(CHIP_8 *C8, char *FG, char *BG);
+void KEYBOARD(CHIP_8 *C8, uint8_t KEY, uint8_t PRESS_OR_RELEASE);
+void DXYN(CHIP_8 *C8, uint8_t N, uint8_t X, uint8_t Y);
+void DRAWB(CHIP_8 *C8, uint8_t L, uint8_t R, uint8_t Y, uint8_t SHL, uint8_t SHR, uint16_t *IDX, uint8_t ON);
