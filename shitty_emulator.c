@@ -95,7 +95,13 @@ void CYCLE(CHIP_8  *C8){
           case 0xB000: C8->PC = NNN + C8->V[0]; break;
           case 0xC000: C8->V[X] = (rand() % 255) & NN;
                        break;
-          case 0xD000: DXYN(C8, N, X, Y);
+          case 0xD000: DXYN(C8, N, X, Y);/*C8->V[0xF] = 0;
+                       for(uint8_t i = 0; i < N; i++){
+                            for(uint8_t j = 0; j < 8; j++){
+                                 if(C8->DISPLAY[C8->V[X] + j][C8->V[Y] + i] == 1 && ((C8->MEMORY[C8->I + i] & ands[j]) >> (8 - j - 1)) == 1)C8->V[0xF] = 1;
+                                 C8->DISPLAY[C8->V[X] + j][C8->V[Y] + i] = C8->DISPLAY[C8->V[X] + j][C8->V[Y] + i] ^ ((C8->MEMORY[C8->I + i] & ands[j]) >> (8 - j - 1));
+                            }
+                       }*/
                        break;
           case 0xE09E: if(C8->KEY_PRESS == C8->V[X])C8->PC += 2;
                        break;
@@ -126,7 +132,7 @@ void CYCLE(CHIP_8  *C8){
      }
 }
 void RENDER(CHIP_8 *C8, char *FG, char *BG){
-     //system("cls");
+
      for(uint8_t i = 0; i < 32; i++)
           for(uint8_t j = 0; j < 64; j++)printf("%s", C8->DISPLAY[j][i] ? FG : BG);
 }
@@ -170,7 +176,7 @@ void DXYN(CHIP_8 *C8, uint8_t N, uint8_t X, uint8_t Y){
     uint8_t  VY  = C8->V[Y] &  31;
     uint8_t  SHR =       VX &   7;
     uint8_t  SHL =        8 - SHR;
-    uint16_t IDX =          C8->I;
+    uint16_t IDX =       C8 ->  I;
     uint8_t  X0  =       VX >>  3;
     uint8_t  X1  =       X0 +   1;
     uint8_t  X2  =       X0 +   2;
@@ -191,7 +197,9 @@ void DXYN(CHIP_8 *C8, uint8_t N, uint8_t X, uint8_t Y){
 
 void DRAWB(CHIP_8 *C8, uint8_t L, uint8_t R, uint8_t Y, uint8_t SHL, uint8_t SHR, uint16_t *IDX, uint8_t ON){
     if(!ON)return;
+      printf("Xue Hua Piao Piao\nIDX: %4x -> ", *IDX - 512);
     uint8_t DATA = C8->MEMORY[(*IDX)++];
+      printf("%4x : %2x (RAM: %2x)", *IDX - 512, DATA, C8->MEMORY[*IDX -1]);
     if(L < 8){
         if(!C8->V[15])C8->V[15] = (C8->DISPLAY[Y][L] & DATA >> SHR) != 0;
         C8->DISPLAY[Y][L]       = (C8->DISPLAY[Y][L] ^ DATA >> SHR);
