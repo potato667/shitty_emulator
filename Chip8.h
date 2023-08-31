@@ -1,3 +1,4 @@
+#define _WIN32_WINNT 0x0501
 #include  <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,6 +6,7 @@
 #include  <conio.h>
 #include   <time.h>
 #include<windows.h>
+#include<winuser.h>
 
 typedef struct{
      //uint8_t RESERVED_MEMORY[512];
@@ -18,7 +20,7 @@ typedef struct{
      uint8_t              DT; // DELAY TIMER
      uint16_t      STACK[16];
      uint16_t             SP;
-     uint8_t       KEY_PRESS;
+     uint8_t   KEY_PRESS[16];
      // SOUND NOT INCLUDED
 } CHIP_8;
 
@@ -42,8 +44,7 @@ uint8_t FONT[80] = {
 };
 
 void INIT(CHIP_8 *C8);
-void CYCLE(CHIP_8 *C8);
+void LOAD_ROM(CHIP_8 *C8);
+void CYCLE(CHIP_8 *C8, uint8_t IPF);
 void RENDER(CHIP_8 *C8, char *FG, char *BG);
-void KEYBOARD(CHIP_8 *C8, uint8_t KEY, uint8_t PRESS_OR_RELEASE);
-void DXYN(CHIP_8 *C8, uint8_t N, uint8_t X, uint8_t Y);
-void DRAWB(CHIP_8 *C8, uint8_t L, uint8_t R, uint8_t Y, uint8_t SHL, uint8_t SHR, uint16_t *IDX, uint8_t ON);
+void KEYBOARD(CHIP_8 *C8);
