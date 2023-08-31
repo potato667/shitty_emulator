@@ -151,9 +151,9 @@ void CYCLE(CHIP_8 *C8, uint8_t IPF){
                case 0x8000:
                switch(OP & 0x000F){
                     case 0x0: C8->V[X] = C8->V[Y]; break;
-                    case 0x1: C8->V[X] = C8->V[X] | C8->V[Y]; break;
-                    case 0x2: C8->V[X] = C8->V[X] & C8->V[Y]; break;
-                    case 0x3: C8->V[X] = C8->V[X] ^ C8->V[Y]; break;
+                    case 0x1: C8->V[X] = C8->V[X] |= C8->V[Y]; break;
+                    case 0x2: C8->V[X] = C8->V[X] &= C8->V[Y]; break;
+                    case 0x3: C8->V[X] = C8->V[X] ^= C8->V[Y]; break;
                     case 0x4: if(C8->V[X] + C8->V[Y] > 255)tmp = 1;
                               else tmp = 0;
                               C8->V[X] += C8->V[Y];
@@ -164,8 +164,8 @@ void CYCLE(CHIP_8 *C8, uint8_t IPF){
                               C8->V[X] -= C8->V[Y];
                               C8->V[0xF] = tmp;
                               break;
-                    case 0x6: if(C8->V[X] % 2 == 0)tmp = 0;
-                              else tmp = 1;
+                    case 0x6: if(C8->V[X] & 1 != 0)tmp = 1;
+                              else tmp = 0;
                               C8->V[X] = C8->V[Y] >> 1;
                               C8->V[0xF] = tmp;
                               break;
@@ -174,8 +174,8 @@ void CYCLE(CHIP_8 *C8, uint8_t IPF){
                               C8->V[X] = C8->V[Y] - C8->V[X];
                               C8->V[0xF] = tmp;
                               break;
-                    case 0xE: if(C8->V[X] < 128)tmp = 0;
-                              else tmp = 1;
+                    case 0xE: if(C8->V[X] << 7 != 0)tmp = 1;
+                              else tmp = 0;
                               C8->V[X] = C8->V[Y] << 1;
                               C8->V[0xF] = tmp;
                               break;
@@ -197,10 +197,13 @@ void CYCLE(CHIP_8 *C8, uint8_t IPF){
                             }
                             C8->V[0xF] = tmp;
                             break;
-               case 0xE09E: if(C8->KEY_PRESS[C8->V[X] & 0xF] == C8->V[X] & 0xF)C8->PC += 2;
-                            break;
-               case 0xE0A1: if(C8->KEY_PRESS[C8->V[X] & 0xF] != C8->V[X] & 0xF)C8->PC += 2;
-                            break;
+               case 0xE000:
+                    switch(OP & 0xF000){
+                         case 0xE09E: if(C8->KEY_PRESS[C8->V[X] & 0xF] == 1)C8->PC += 2;
+                                      break;
+                         case 0xE0A1: if(C8->KEY_PRESS[C8->V[X] & 0xF] == 0)C8->PC += 2;
+                                      break;
+                    }
                case 0xF000:
                     switch(OP & 0x00FF){
                          case 0x07: C8->V[X] = C8->DT; break;
@@ -257,6 +260,17 @@ void KEYBOARD(CHIP_8 *C8){
                case 'f': C8->KEY_PRESS[0xE] = 1; break;
                case 'v': C8->KEY_PRESS[0xF] = 1; break;
                default: break;
+          }
+     }
+     else if(!_kbhit() && C8->KEY_PRESS[0x0] == 1 || C8->KEY_PRESS[0x1] == 1 || C8->KEY_PRESS[0x2] == 1 || C8->KEY_PRESS[0x3] == 1 ||
+                          C8->KEY_PRESS[0x4] == 1 || C8->KEY_PRESS[0x5] == 1 || C8->KEY_PRESS[0x6] == 1 || C8->KEY_PRESS[0x7] == 1 ||
+                          C8->KEY_PRESS[0x8] == 1 || C8->KEY_PRESS[0x9] == 1 || C8->KEY_PRESS[0xA] == 1 || C8->KEY_PRESS[0xB] == 1 ||
+                          C8->KEY_PRESS[0xC] == 1 || C8->KEY_PRESS[0xD] == 1 || C8->KEY_PRESS[0xE] == 1 || C8->KEY_PRESS[0xF] == 1){
+          switch(_getch()){
+               default:{
+                    for(uint8_t i = 0; i < 16; i++)C8->KEY_PRESS[i] = 0;
+                    break;
+               }
           }
      }
 }
